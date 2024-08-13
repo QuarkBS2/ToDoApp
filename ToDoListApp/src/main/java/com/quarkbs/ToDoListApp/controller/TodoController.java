@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.quarkbs.ToDoListApp.entity.Todo;
+import com.quarkbs.ToDoListApp.entity.TodoMetrics;
 import com.quarkbs.ToDoListApp.service.TodoService;
 
 import jakarta.validation.Valid;
@@ -56,6 +57,11 @@ public class TodoController{
     @PutMapping("/{id}/undone")
     public Todo undoneTodo(@PathVariable Long id){
         return todoService.markUndone(id);
+    }
+
+    @GetMapping("/metrics")
+    public TodoMetrics metrics(){
+        return todoService.getMetrics();
     }
 
 }

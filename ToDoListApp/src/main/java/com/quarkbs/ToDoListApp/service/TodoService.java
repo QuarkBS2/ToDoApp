@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.quarkbs.ToDoListApp.entity.Todo;
+import com.quarkbs.ToDoListApp.entity.TodoMetrics;
 import com.quarkbs.ToDoListApp.repository.TodoRepository;
 
 @Service
@@ -33,9 +34,6 @@ public class TodoService{
         List<Todo> sortedTodos = filteredTodos.stream()
         .sorted(comparator)
         .collect(Collectors.toList());
-
-        //int start = Math.min(page * size, sortedTodos.size());
-        //int end = Math.min((page + 1) * size, sortedTodos.size());
 
         return sortedTodos;
     }
@@ -82,17 +80,44 @@ public class TodoService{
     private int calculatePriority(LocalDate dueDate) {
         LocalDate today = LocalDate.now();
 
-        if (((int)(today.until(dueDate).getDays()) > 14)){
-            return 1;
-        }
-
-        if(((int)(today.until(dueDate).getDays()) > 7) && ((int)(today.until(dueDate).getDays()) <=14)){
-            return 2;
-        }
-        if(((int)(today.until(dueDate).getDays()) <= 7)){
-            return 3;
+        if (dueDate != null){
+            if (((int)(today.until(dueDate).getDays()) > 14)){
+                return 1;
+            }
+    
+            if(((int)(today.until(dueDate).getDays()) > 7) && ((int)(today.until(dueDate).getDays()) <=14)){
+                return 2;
+            }
+            if(((int)(today.until(dueDate).getDays()) <= 7)){
+                return 3;
+            }
         }
         return 0;
+    }
+
+    public TodoMetrics getMetrics(){
+        List<Todo> todos = todoRepository.findAll();
+        Long allTotal = 0L;
+        Long allTotalLow = 0L;
+        Long allTotalMedium = 0L;
+        Long allTotalHigh = 0L;
+        
+        for (Todo todo: todos){
+            if(todo.getElapsedTime() != null){
+                if(todo.getPriority() == 1){
+                    allTotalLow += todo.getElapsedTime();
+                }
+                if(todo.getPriority() == 2){
+                    allTotalMedium += todo.getElapsedTime();
+                }
+                if(todo.getPriority() == 3){
+                    allTotalHigh += todo.getElapsedTime();
+                }
+                allTotal += todo.getElapsedTime();
+            }
+        }
+
+        return todoRepository.getMetrics(allTotal, allTotalLow, allTotalMedium, allTotalHigh);
     }
 
 }

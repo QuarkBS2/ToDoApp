@@ -21,7 +21,7 @@ function TodoFilters(){
 
     return (
         <>
-            <Form 
+            <Form
                 form={form} 
                 layout="horizontal" 
                 onFinish={onFinish}
