@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import {addTodo, statusDone, statusUndone, updateTodo} from './todosSlice';
 
 const priorityLabels = ['', 'Low', 'Medium', 'High']
+const dayjs = require('dayjs')
 
 function TodoList({todos}){
     const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -19,12 +20,15 @@ function TodoList({todos}){
     const showEditModal = (todo) => {
         setCurrentTodo(todo);
         setStatus(todo.status);
+        setDueDate(dayjs(todo.dueDate));
+        setText(todo.text);
         setIsEditModalVisible(true);
     }
 
     const handleEditOk = () => {
         dispatch(updateTodo({
             ...currentTodo,
+            text: text,
             dueDate: dueDate,
             status: status,
         }));
@@ -70,6 +74,7 @@ function TodoList({todos}){
                 status:false
             }));
         }
+        window.location.reload();
     }
 
     const columns = [
@@ -131,24 +136,6 @@ function TodoList({todos}){
         },
     ];
 
-    const onChange = (pagination, filters, sorter, extra) => {
-        console.log('params', pagination, filters, sorter, extra);
-      };
-
-    const customSorter = (a, b, col, sortOrder) => {
-        if (a[col] === null && b[col] === null) {
-            return 0;
-        } else if (a[col] === null) {
-            return 1;  // Push `a` with null at the end
-        } else if (b[col] === null) {
-            return -1; // Push `b` with null at the end
-        }
-    
-        const numA = parseFloat(a[col]);
-        const numB = parseFloat(b[col]);
-        return sortOrder === 'ascend' ? numA - numB : numB - numA;
-    };
-
     const handlePagination = (pagination) => {
         setPagination(pagination);
     }
@@ -178,6 +165,7 @@ function TodoList({todos}){
                 open={isEditModalVisible}
                 onOk={handleEditOk}
                 onCancel={handleEditCancel}
+                destroyOnClose={true}
             >
                 <Input
                     defaultValue={text}
@@ -194,6 +182,7 @@ function TodoList({todos}){
                 open={isAddModalVisible}
                 onOk={handleAddOk}
                 onCancel={handleAddCancel}
+                destroyOnClose={true}
             >
                 <div>
                     <Typography.Title level={5}>Task description</Typography.Title>
