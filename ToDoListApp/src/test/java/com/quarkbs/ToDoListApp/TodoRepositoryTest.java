@@ -2,31 +2,39 @@ package com.quarkbs.ToDoListApp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import org.junit.jupiter.api.Assertions;
+import com.quarkbs.ToDoListApp.repository.TodoRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.quarkbs.ToDoListApp.entity.Todo;
 import com.quarkbs.ToDoListApp.entity.TodoMetrics;
-import com.quarkbs.ToDoListApp.repository.TodoRepository;
+import org.springframework.data.domain.PageRequest;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Test class for TodoRepository.
+ */
 @ExtendWith(MockitoExtension.class)
 public class TodoRepositoryTest {
-    @InjectMocks
-    private TodoRepository todoRepository;
+    private TodoRepositoryImpl todoRepository;
 
     private Todo todoA;
     private Todo todoB;
     private Todo todoC;
 
+    /**
+     * Sets up test data before each test.
+     */
     @BeforeEach
     public void setUp(){
+        todoRepository = new TodoRepositoryImpl();
         todoA = new Todo();
         todoA.setId(1L);
         todoA.setText("TEST FOR TODO A");
@@ -48,7 +56,7 @@ public class TodoRepositoryTest {
         todoB.setElapsedTime(120L);
 
         todoC = new Todo();
-        todoC.setId(2L);
+        todoC.setId(3L);
         todoC.setText("TEST FOR TODO C");
         todoC.setDueDate(LocalDate.now().plusDays(20));
         todoC.setStatus(true);
@@ -58,45 +66,86 @@ public class TodoRepositoryTest {
         todoC.setElapsedTime(240L);
     }
 
+    /**
+     * Tests the save method of TodoRepository.
+     */
     @Test
     public void testSave() {
-        Todo response = todoRepository.save(todoA);
-
-        Assertions.assertNotNull(response);
+        Todo savedTodo = todoRepository.save(todoA);
+        assertNotNull(savedTodo);
+        assertEquals(todoA.getText(), savedTodo.getText());
     }
 
+    /**
+     * Tests the findById method of TodoRepository.
+     */
     @Test
-    public void testFindByFilter(){
+    public void testFindById() {
+        Todo savedTodo = todoRepository.save(todoA);
+        Optional<Todo> foundTodo = todoRepository.findById(savedTodo.getId());
+        assertTrue(foundTodo.isPresent());
+        assertEquals(savedTodo.getText(), foundTodo.get().getText());
+    }
+
+    /**
+     * Tests the getMetrics method of TodoRepository.
+     */
+    @Test
+    public void testGetMetrics() {
+        todoRepository.save(todoA);
+        todoA.setElapsedTime(60L);
+        todoRepository.save(todoB);
+        todoB.setElapsedTime(120L);
+
+        double allTotal = todoA.getElapsedTime() + todoB.getElapsedTime();
+        TodoMetrics metrics = todoRepository.getMetrics(allTotal, 0, todoB.getElapsedTime(), todoA.getElapsedTime());
+
+        assertEquals(allTotal / 2 / 60, metrics.getAvgTime());
+        assertEquals(todoA.getElapsedTime() / 60, metrics.getAvgTimeHigh());
+        assertEquals(todoB.getElapsedTime() / 60, metrics.getAvgTimeMedium());
+        assertEquals(0, metrics.getAvgTimeLow());
+    }
+
+    /**
+     * Tests the findByFilter method of TodoRepository with different parameters.
+     */
+    @Test
+    public void testFindByFilterWithDifferentParameters() {
         todoRepository.save(todoA);
         todoRepository.save(todoB);
-
-        //By status = true
-        List<Todo> todos = todoRepository.findByFilter(true, null, null);
-        Assertions.assertEquals(todoA, todos.get(0));
-
-        //By text
-        todos = todoRepository.findByFilter(null, "TEST", null);
-        Assertions.assertEquals(Arrays.asList(todoA, todoB), todos);
-
-        //By text
-        todos = todoRepository.findByFilter(null, null, todoA.getPriority());
-        Assertions.assertEquals(todoA, todos.get(0));
-    }
-
-    @Test
-    public void testGetMetrics(){
-        todoRepository.save(todoA);
         todoRepository.save(todoC);
 
-        Long allTodo = todoA.getElapsedTime() + todoB.getElapsedTime() + todoC.getElapsedTime();
+        // Test with status filter
+        PageRequest pageable = PageRequest.of(0, 10);
+        Map<String, Object> result = todoRepository.findByFilter(pageable, true, "", null, "", "ASC", "ASC");
+        List<Todo> todos = (List<Todo>) result.get("todosList");
+        int total = (int) result.get("total");
+        assertEquals(3, todos.size());
+        assertEquals(3, total);
 
-        TodoMetrics metrics = todoRepository.getMetrics(allTodo, todoC.getElapsedTime(), 0L, todoA.getElapsedTime());
+        // Test with text filter
+        result = todoRepository.findByFilter(pageable, null, "TEST FOR TODO A", null, "", "ASC", "ASC");
+        todos = (List<Todo>) result.get("todosList");
+        total = (int) result.get("total");
+        assertEquals(1, todos.size());
+        assertEquals(1, total);
+        assertEquals(todoA.getText(), todos.get(0).getText());
 
-        Assertions.assertEquals(allTodo / todoRepository.findAll().size() / 60, metrics.getAvgTime());
-        Assertions.assertEquals(todoA.getElapsedTime()  / 60, metrics.getAvgTimeHigh());
-        Assertions.assertEquals(0L, metrics.getAvgTimeMedium());
-        Assertions.assertEquals(todoC.getElapsedTime()  / 60, metrics.getAvgTimeLow());
-        
+        // Test with priority filter
+        result = todoRepository.findByFilter(pageable, null, "", 2, "", "ASC", "ASC");
+        todos = (List<Todo>) result.get("todosList");
+        total = (int) result.get("total");
+        assertEquals(1, todos.size());
+        assertEquals(1, total);
+        assertEquals(todoB.getText(), todos.get(0).getText());
+
+        // Test with combined filters
+        result = todoRepository.findByFilter(pageable, true, "TEST FOR TODO B", 2, "", "ASC", "ASC");
+        todos = (List<Todo>) result.get("todosList");
+        total = (int) result.get("total");
+        assertEquals(1, todos.size());
+        assertEquals(1, total);
+        assertEquals(todoB.getText(), todos.get(0).getText());
     }
 
 }
