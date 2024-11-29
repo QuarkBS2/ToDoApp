@@ -12,6 +12,16 @@ export const getMetrics = createAsyncThunk('./getMetrics', async () => {
     return response.data;
 })
 
+/**
+ * Creates a slice for managing metrics state.
+ *
+ * @param {Object} options - The options for creating the slice.
+ * @param {string} options.name - The name of the slice.
+ * @param {Object} options.initialState - The initial state of the slice.
+ * @param {Object} options.reducers - The reducers for the slice.
+ * @param {Function} options.extraReducers - The extra reducers for the slice.
+ * @returns {Object} - The created metrics slice.
+ */
 const MetricsSlice = createSlice({
     name: 'metrics',
     initialState,

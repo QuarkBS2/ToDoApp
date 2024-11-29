@@ -1,34 +1,41 @@
 import React from "react";
-import { useDispatch } from "react-redux";
-import {fetchTodos} from './todosSlice';
+import { useDispatch, useSelector } from "react-redux";
+import { fetchTodos } from './todosSlice';
+import { setFilters } from './filtersSlice';
 import {Form, Input, Select, Button, Flex} from 'antd';
 
 const {Option} = Select;
 
+/**
+ * Renders a component for applying filters to a todo list.
+ *
+ * @returns {JSX.Element} The rendered component.
+ */
 function TodoFilters(){
-    const [form] = Form.useForm();
     const dispatch = useDispatch();
+    const filters = useSelector((state) => state.filters);
 
-    const onFinish = (values) => {
-        dispatch(fetchTodos({
-            status: values.status === '' ? null : values.status === 'done',
-            text: values.text === '' ? null : values.text,
-            priority: values.priority === '' ? null : parseInt(values.priority),
-            sortBy: values.sortBy,
-            direction: values.direction,
-        }));
+    const handleApplyFilters = (values) => {
+        if (values.status === 'done') {
+                values.status = true;
+            } else if (values.status === 'undone') {
+                values.status = false;
+            } else {
+                values.status = '';
+          }
+        dispatch(setFilters(values));
+        dispatch(fetchTodos(values));
     };
 
     return (
         <>
             <Form
-                form={form} 
-                layout="horizontal" 
-                onFinish={onFinish}
+                initialValues={filters}
+                onFinish={handleApplyFilters}
+                layout="horizontal"
                 wrapperCol={{
                     span: 16,
                 }}
-
             >
                 <Form.Item name="text" label="Search by word">
                     <Input placeholder="Search task"/>

@@ -1,6 +1,12 @@
 import React from 'react';
 import { Card, Statistic, Row, Col } from 'antd';
 
+/**
+ * Renders the TodoMetrics component.
+ *
+ * @param {Object} metrics - The metrics object containing task completion data.
+ * @returns {JSX.Element} The rendered TodoMetrics component.
+ */
 function TodoMetrics({metrics}){
     return(
         <>
