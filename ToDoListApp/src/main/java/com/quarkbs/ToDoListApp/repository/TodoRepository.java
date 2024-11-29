@@ -1,73 +1,69 @@
 package com.quarkbs.ToDoListApp.repository;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Repository;
-
 import com.quarkbs.ToDoListApp.entity.Todo;
 import com.quarkbs.ToDoListApp.entity.TodoMetrics;
+import org.springframework.data.domain.PageRequest;
 
-@Repository
-public class TodoRepository {
-    private final List<Todo> todos = new ArrayList<>();
-    private final TodoMetrics metrics = new TodoMetrics();
-    private long nextId = 1;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-    public List<Todo> findAll(){
-        return new ArrayList<>(todos);
-    }
+/**
+ * Repository interface for managing Todo entities.
+ */
+public interface TodoRepository {
+    /**
+     * Retrieves all todos.
+     *
+     * @return a list of all todos
+     */
+    List<Todo> findAll();
 
-    public TodoMetrics getMetrics(Long allTotal, Long allTotalLow, Long allTotalMedium, Long allTotalHigh){
-        List<Todo> todosElapsedNulls = todos.stream().filter(todo -> todo.getElapsedTime() == null).collect(Collectors.toList());
-        List<Todo> todosLows = todos.stream().filter(todo -> todo.getPriority() == 1).filter(todo -> todo.getElapsedTime() != null).collect(Collectors.toList());
-        List<Todo> todosMedium = todos.stream().filter(todo -> todo.getPriority() == 2).filter(todo -> todo.getElapsedTime() != null).collect(Collectors.toList());
-        List<Todo> todosHigh = todos.stream().filter(todo -> todo.getPriority() == 3).filter(todo -> todo.getElapsedTime() != null).collect(Collectors.toList());
+    /**
+     * Retrieves a todo by its ID.
+     *
+     * @param id the ID of the todo
+     * @return an Optional containing the todo if found, or empty if not found
+     */
+    Optional<Todo> findById(Long id);
 
-        allTotal = todos.size() - todosElapsedNulls.size() == 0 ? 0L :(allTotal / (todos.size() - todosElapsedNulls.size())) / 60;
-        allTotalLow = todosLows.isEmpty() ? 0L : (allTotalLow / todosLows.size()) / 60;
-        allTotalMedium = todosMedium.isEmpty() ? 0L : (allTotalMedium / todosMedium.size()) / 60;
-        allTotalHigh= todosHigh.isEmpty() ? 0L : (allTotalHigh / todosHigh.size()) / 60;
-        
-        metrics.setAvgTime(allTotal);
-        metrics.setAvgTimeLow(allTotalLow);
-        metrics.setAvgTimeMedium(allTotalMedium);
-        metrics.setAvgTimeHigh(allTotalHigh);
+    /**
+     * Saves a todo.
+     *
+     * @param todo the todo to save
+     * @return the saved todo
+     */
+    Todo save(Todo todo);
 
+    /**
+     * Deletes a todo by its ID.
+     *
+     * @param id the ID of the todo to delete
+     */
+    void deleteById(Long id);
 
-        return metrics;
-    }
+    /**
+     * Retrieves a paginated list of todos with optional filters.
+     *
+     * @param pageable the pagination information
+     * @param status the status filter (optional)
+     * @param text the text filter (optional)
+     * @param priority the priority filter (optional)
+     * @param sortBy the field to sort by
+     * @param directionPriority the sort direction for priority
+     * @param directionDueDate the sort direction for due date
+     * @return a map containing the paginated list of todos and additional metadata
+     */
+    Map<String, Object> findByFilter(PageRequest pageable, Boolean status, String text, Integer priority, String sortBy, String directionPriority, String directionDueDate);
 
-    public Optional<Todo> findById(Long id){
-        return todos.stream().filter(todo -> todo.getId().equals(id)).findFirst();
-    }
-
-    public Todo save(Todo todo){
-        if(todo.getId() == null){
-            todo.setId(nextId++);
-        } else{
-            deleteById(todo.getId());
-        }
-        if (todo.getCreationDate() == null){
-            todo.setCreationDate(LocalDateTime.now());
-        }
-        todos.add(todo);
-        return todo;
-    }
-
-    public void deleteById(Long id){
-        todos.removeIf(todo -> todo.getId().equals(id));
-    }
-
-    public List<Todo> findByFilter(Boolean status, String text, Integer priority){
-        return todos.stream()
-        .filter(todo -> status == null || todo.getStatus().equals(status))
-        .filter(todo -> text == null || todo.getText().toLowerCase().contains(text.toLowerCase()))
-        .filter(todo -> priority == null || todo.getPriority() == priority)
-        .collect(Collectors.toList());
-    }
-
+    /**
+     * Retrieves todo metrics.
+     *
+     * @param allTotal the total elapsed time for all todos
+     * @param allTotalLow the total elapsed time for low priority todos
+     * @param allTotalMedium the total elapsed time for medium priority todos
+     * @param allTotalHigh the total elapsed time for high priority todos
+     * @return the todo metrics
+     */
+    TodoMetrics getMetrics(double allTotal, double allTotalLow, double allTotalMedium, double allTotalHigh);
 }

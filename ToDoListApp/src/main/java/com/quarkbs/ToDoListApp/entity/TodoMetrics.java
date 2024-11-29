@@ -1,41 +1,60 @@
 package com.quarkbs.ToDoListApp.entity;
 
+/**
+ * Entity class representing metrics for Todo items.
+ */
 public class TodoMetrics {
-    private Long avgTime;
-    private Long avgTimeLow;
-    private Long avgTimeMedium;
-    private Long avgTimeHigh;
+    /**
+     * The average elapsed time until completion for all todos.
+     */
+    private double avgTime;
 
-    public Long getAvgTime(){
+    /**
+     * The average elapsed time until completion for low priority todos.
+     */
+    private double avgTimeLow;
+
+    /**
+     * The average elapsed time until completion for medium priority todos.
+     */
+    private double avgTimeMedium;
+
+    /**
+     * The average elapsed time until completion for high priority todos.
+     */
+    private double avgTimeHigh;
+
+    // Getters and setters
+
+    public double getAvgTime() {
         return avgTime;
     }
 
-    public void setAvgTime(Long avgTime) {
+    public void setAvgTime(double avgTime) {
         this.avgTime = avgTime;
     }
-    
-    public Long getAvgTimeLow(){
+
+    public double getAvgTimeLow() {
         return avgTimeLow;
     }
 
-    public void setAvgTimeLow(Long avgTimeLow) {
+    public void setAvgTimeLow(double avgTimeLow) {
         this.avgTimeLow = avgTimeLow;
     }
 
-    public Long getAvgTimeMedium(){
+    public double getAvgTimeMedium() {
         return avgTimeMedium;
     }
 
-    public void setAvgTimeMedium(Long avgTimeMedium) {
+    public void setAvgTimeMedium(double avgTimeMedium) {
         this.avgTimeMedium = avgTimeMedium;
     }
 
-    public Long getAvgTimeHigh(){
+    public double getAvgTimeHigh() {
         return avgTimeHigh;
     }
 
-    public void setAvgTimeHigh(Long avgTimeHigh) {
+    public void setAvgTimeHigh(double avgTimeHigh) {
         this.avgTimeHigh = avgTimeHigh;
     }
-
 }

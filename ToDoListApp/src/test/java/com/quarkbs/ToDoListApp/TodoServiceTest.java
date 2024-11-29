@@ -4,16 +4,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import com.quarkbs.ToDoListApp.dto.TodoDTO;
+import com.quarkbs.ToDoListApp.exception.TodoNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -23,12 +22,22 @@ import com.quarkbs.ToDoListApp.entity.Todo;
 import com.quarkbs.ToDoListApp.entity.TodoMetrics;
 import com.quarkbs.ToDoListApp.repository.TodoRepository;
 import com.quarkbs.ToDoListApp.service.TodoService;
+import org.springframework.data.domain.PageRequest;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+
+/**
+ * Test class for TodoService.
+ */
 @ExtendWith(MockitoExtension.class)
 public class TodoServiceTest {
 
     private Todo todoA;
     private Todo todoB;
+    private TodoDTO todoDTOA;
+    private TodoDTO todoDTOB;
     private TodoMetrics metrics;
     private Optional<Todo> findByIdResponse;
 
@@ -38,6 +47,9 @@ public class TodoServiceTest {
     @InjectMocks
     private TodoService todoService;
 
+    /**
+     * Sets up test data before each test.
+     */
     @BeforeEach
     public void setUp(){
         todoA = new Todo();
@@ -57,6 +69,21 @@ public class TodoServiceTest {
         todoB.setCreationDate(LocalDateTime.now());
         todoB.setDoneDate(LocalDateTime.now().plusMinutes(60));
 
+        todoDTOA = new TodoDTO();
+        todoDTOA.setText("TEST FOR TODO A");
+        todoDTOA.setDueDate(LocalDate.now().plusDays(2L));
+        todoDTOA.setStatus(false);
+        todoDTOA.setPriority(3);
+        todoDTOA.setCreationDate(LocalDateTime.now());
+
+        todoDTOB = new TodoDTO();
+        todoDTOB.setText("TEST FOR TODO B");
+        todoDTOB.setDueDate(LocalDate.now().minusDays(2L));
+        todoDTOB.setStatus(true);
+        todoDTOB.setPriority(3);
+        todoDTOB.setCreationDate(LocalDateTime.now());
+        todoDTOB.setDoneDate(LocalDateTime.now().plusMinutes(60));
+
         metrics = new TodoMetrics();
         metrics.setAvgTime(120L);
         metrics.setAvgTimeHigh(120L);
@@ -64,94 +91,155 @@ public class TodoServiceTest {
         metrics.setAvgTimeLow(180L);
     }
 
+    /**
+     * Tests the getAllTodos method of TodoService.
+     */
     @Test
-    public void testGetTodo(){
+    public void testGetTodos() {
         List<Todo> response = Arrays.asList(todoA, todoB);
 
-        Mockito.when(todoRepository.findByFilter(anyBoolean(), anyString(), anyInt())).thenReturn(response);
+        Mockito.when(todoRepository.findByFilter(any(PageRequest.class), anyBoolean(), anyString(), anyInt(), anyString(), anyString(), anyString())).thenReturn(Map.of("todos", response));
 
-        todoService.addTodo(todoA);
-        todoService.addTodo(todoB);
+        Map<String, Object> todos = todoService.getAllTodos(PageRequest.of(0, 10), false, "", 3, "creationDate", "ASC", "ASC");
 
-        List<Todo> todos = todoService.getAllTodos(1, 10, "creationDate", "ASC", false, "", 3);
-
-        Assertions.assertEquals(response, todos);
+        Assertions.assertEquals(response, todos.get("todos"));
     }
 
+    /**
+     * Tests the addTodo method of TodoService.
+     */
     @Test
-    public void testAddTodo(){
+    public void testAddTodo() {
         Todo response = new Todo();
         response.setId(1L);
         response.setCreationDate(LocalDateTime.now());
-        response.setText("TEST FOR ADDING VALUE");
+        response.setText("TEST FOR ADDING A");
 
-        Mockito.when(todoRepository.save(todoA)).thenReturn(response);
+        Mockito.when(todoRepository.save(any(Todo.class))).thenReturn(response);
 
-        final Todo newTodo = todoService.addTodo(todoA);
+        final Todo newTodo = todoService.addTodo(todoDTOA);
 
         Assertions.assertEquals(response.getText(), newTodo.getText());
     }
 
+    /**
+     * Tests the updateTodo method of TodoService.
+     */
     @Test
-    public void testUpdateTodo(){
-        Todo response = new Todo();
-        response.setId(1L);
-        response.setCreationDate(LocalDateTime.now());
-        response.setText("TEST FOR ADDING VALUE");
-        response.setDueDate(LocalDate.now());
+    public void testUpdateTodo() {
+        Todo existingTodo = new Todo();
+        existingTodo.setId(1L);
+        existingTodo.setText("Existing Todo");
+        existingTodo.setDueDate(LocalDate.now().plusDays(5));
+        existingTodo.setStatus(false);
+        existingTodo.setPriority(2);
+        existingTodo.setCreationDate(LocalDateTime.now());
 
-        Mockito.when(todoRepository.save(todoA)).thenReturn(response);
-        final Todo toUpdateTodo = todoService.addTodo(todoA);
+        TodoDTO updatedTodoDTO = new TodoDTO();
+        updatedTodoDTO.setText("Updated Todo");
+        updatedTodoDTO.setDueDate(LocalDate.now().plusDays(10));
+        updatedTodoDTO.setStatus(true);
+        updatedTodoDTO.setPriority(2);
+        updatedTodoDTO.setCreationDate(LocalDateTime.now());
 
-        findByIdResponse = Optional.of(todoA);
-        toUpdateTodo.setText("TEST FOR TODO A");
-        toUpdateTodo.setDueDate(LocalDate.now().plusDays(2L));
+        Mockito.when(todoRepository.findById(1L)).thenReturn(Optional.of(existingTodo));
+        Mockito.when(todoRepository.save(any(Todo.class))).thenReturn(existingTodo);
 
-        Mockito.when(todoRepository.findById(anyLong())).thenReturn(findByIdResponse);
-        final Todo updatedTodo = todoService.updateTodo(toUpdateTodo.getId(), toUpdateTodo);
+        Todo updatedTodo = todoService.updateTodo(1L, updatedTodoDTO);
 
-        Assertions.assertEquals(todoA.getText(), updatedTodo.getText());
-        Assertions.assertEquals(todoA.getDueDate(), updatedTodo.getDueDate());
+        Assertions.assertEquals(updatedTodoDTO.getText(), updatedTodo.getText());
+        Assertions.assertEquals(updatedTodoDTO.getDueDate(), updatedTodo.getDueDate());
+        Assertions.assertEquals(updatedTodoDTO.getStatus(), updatedTodo.getStatus());
+        Assertions.assertEquals(updatedTodoDTO.getPriority(), updatedTodo.getPriority());
     }
 
+    /**
+     * Tests the markDone method of TodoService.
+     */
     @Test
-    public void testMarkDone(){
-        Mockito.when(todoRepository.save(todoA)).thenReturn(todoA);
-        final Todo toUpdateTodo = todoService.addTodo(todoA);
+    public void testMarkDone() {
+        Mockito.when(todoRepository.findById(todoA.getId())).thenReturn(Optional.of(todoA));
+        Mockito.when(todoRepository.save(any(Todo.class))).thenReturn(todoA);
 
-        findByIdResponse = Optional.of(todoA);
-        
-        Mockito.when(todoRepository.findById(anyLong())).thenReturn(findByIdResponse);
-        final Todo updatedTodo = todoService.markDone(toUpdateTodo.getId());
+        Todo updatedTodo = todoService.markDone(todoA.getId());
 
         Assertions.assertTrue(updatedTodo.getStatus());
+        Assertions.assertNotNull(updatedTodo.getDoneDate());
+        Assertions.assertNotNull(updatedTodo.getElapsedTime());
+        Mockito.verify(todoRepository, Mockito.times(1)).findById(todoA.getId());
+        Mockito.verify(todoRepository, Mockito.times(1)).save(todoA);
     }
 
+    /**
+     * Tests the markUndone method of TodoService.
+     */
     @Test
-    public void testMarkUndone(){
-        Mockito.when(todoRepository.save(todoB)).thenReturn(todoB);
-        final Todo toUpdateTodo = todoService.addTodo(todoB);
+    public void testMarkUndone() {
+        Mockito.when(todoRepository.findById(todoB.getId())).thenReturn(Optional.of(todoB));
+        Mockito.when(todoRepository.save(any(Todo.class))).thenReturn(todoB);
 
-        findByIdResponse = Optional.of(todoB);
-        
-        Mockito.when(todoRepository.findById(anyLong())).thenReturn(findByIdResponse);
-        final Todo updatedTodo = todoService.markUndone(toUpdateTodo.getId());
+        Todo updatedTodo = todoService.markUndone(todoB.getId());
 
         Assertions.assertFalse(updatedTodo.getStatus());
         Assertions.assertNull(updatedTodo.getDoneDate());
+        Assertions.assertNull(updatedTodo.getElapsedTime());
+        Mockito.verify(todoRepository, Mockito.times(1)).findById(todoB.getId());
+        Mockito.verify(todoRepository, Mockito.times(1)).save(todoB);
     }
 
+    /**
+     * Tests the getMetrics method of TodoService.
+     */
     @Test
-    public void testGetMetrics(){
+    public void testGetMetrics() {
         TodoMetrics todoMetrics = metrics;
 
-        Mockito.when(todoRepository.getMetrics(anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(todoMetrics);
+        Mockito.when(todoRepository.getMetrics(anyDouble(), anyDouble(), anyDouble(), anyDouble())).thenReturn(todoMetrics);
         final TodoMetrics metricsResponse = todoService.getMetrics();
 
         Assertions.assertEquals(todoMetrics.getAvgTime(), metricsResponse.getAvgTime());
         Assertions.assertEquals(todoMetrics.getAvgTimeLow(), metricsResponse.getAvgTimeLow());
         Assertions.assertEquals(todoMetrics.getAvgTimeMedium(), metricsResponse.getAvgTimeMedium());
         Assertions.assertEquals(todoMetrics.getAvgTimeHigh(), metricsResponse.getAvgTimeHigh());
+    }
+
+    /**
+     * Tests the updateTodo method of TodoService to throw TodoNotFoundException.
+     */
+    @Test
+    public void testUpdateTodoThrowsException() {
+        when(todoRepository.findById(1L)).thenReturn(Optional.empty());
+
+        TodoDTO updatedTodo = new TodoDTO();
+        updatedTodo.setText("Updated Text");
+
+        assertThrows(TodoNotFoundException.class, () -> {
+            todoService.updateTodo(1L, updatedTodo);
+        });
+    }
+
+    /**
+     * Tests the markDone method of TodoService to throw TodoNotFoundException.
+     */
+    @Test
+    public void testMarkDoneThrowsException() {
+        when(todoRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(TodoNotFoundException.class, () -> {
+            todoService.markDone(1L);
+        });
+    }
+
+    /**
+     * Tests the markUndone method of TodoService to throw TodoNotFoundException.
+     */
+    @Test
+    public void testMarkUndoneThrowsException() {
+        when(todoRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(TodoNotFoundException.class, () -> {
+            todoService.markUndone(1L);
+        });
     }
 
 }
